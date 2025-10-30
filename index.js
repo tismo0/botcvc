@@ -57,6 +57,14 @@ app.get("/", async (req, res) => {
       .readdirSync(transcriptsDir)
       .filter((file) => file.endsWith(".html"));
 
+    const normalizeKey = (value) =>
+      value
+        ? value
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+        : "";
+
     const transcripts = await Promise.all(
       transcriptFiles.map(async (file) => {
         try {
@@ -67,18 +75,21 @@ app.get("/", async (req, res) => {
           // Essayer de retrouver la catégorie via la transcription
           const categoryMatch = content.match(/<strong>Catégorie:<\/strong>\s*(.*?)<\/p>/);
           const rawCategory = categoryMatch ? categoryMatch[1].trim() : null;
+          const normalizedCategory = normalizeKey(rawCategory);
 
           // Déterminer la clé du type à partir de la catégorie ou du nom de fichier
           const resolvedTypeKey = (() => {
             if (rawCategory) {
               const entry = Object.entries(config.tickets.types).find(([, typeInfo]) =>
-                typeInfo.label.toLowerCase() === rawCategory.toLowerCase()
+                normalizeKey(typeInfo.label) === normalizedCategory
               );
               if (entry) return entry[0];
             }
 
-            const filenameHint = file.split("_")[0]?.toLowerCase();
-            const entry = Object.entries(config.tickets.types).find(([key]) => key.toLowerCase() === filenameHint);
+            const filenameHint = normalizeKey(file.split("_")[0]);
+            const entry = Object.entries(config.tickets.types).find(([key]) =>
+              normalizeKey(key) === filenameHint
+            );
             return entry ? entry[0] : null;
           })();
 
