@@ -5,7 +5,9 @@ import {
   ActionRowBuilder, 
   ButtonBuilder, 
   ButtonStyle, 
-  MessageFlags 
+  MessageFlags,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder 
 } from "discord.js";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -133,11 +135,49 @@ export async function createTicket(interaction, config, typeKey) {
       content: `✅ Ton ticket a été créé: <#${ticketChannel.id}>`
     });
 
+    await refreshTicketPanel(interaction, config);
+
   } catch (error) {
     console.error("Erreur lors de la création du ticket:", error);
     await interaction.editReply({
       content: "❌ Une erreur est survenue lors de la création du ticket."
     });
+  }
+}
+
+function buildTicketSelectRow(config) {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId("ticket_select_menu")
+    .setPlaceholder("🎫 Sélectionne un type de ticket...");
+
+  const options = Object.entries(config.tickets.types).map(([typeKey, typeConfig]) => {
+    const option = new StringSelectMenuOptionBuilder()
+      .setLabel(typeConfig.label)
+      .setValue(`ticket_${typeKey}`)
+      .setDescription(`Créer un ticket de type: ${typeConfig.label}`);
+
+    if (typeConfig.emoji) {
+      option.setEmoji(typeConfig.emoji);
+    }
+
+    return option;
+  });
+
+  menu.addOptions(options);
+
+  return new ActionRowBuilder().addComponents(menu);
+}
+
+async function refreshTicketPanel(interaction, config) {
+  if (!interaction.message) {
+    return;
+  }
+
+  try {
+    const row = buildTicketSelectRow(config);
+    await interaction.message.edit({ components: [row] });
+  } catch (error) {
+    console.error("Erreur lors de la réinitialisation du menu de tickets:", error);
   }
 }
 
