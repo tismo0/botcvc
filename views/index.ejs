@@ -28,8 +28,13 @@
         return new Date(year, month - 1, day, hour, minute, second);
       }
 
+      const groupedTickets = ticketsByType || Object.entries(config.tickets.types).reduce((acc, [key]) => {
+        acc[key] = [];
+        return acc;
+      }, {});
+
       const typeEntries = Object.entries(config.tickets.types);
-      const hasTickets = typeEntries.some(([key]) => (ticketsByType?.[key] || []).length > 0);
+      const hasTickets = typeEntries.some(([key]) => (groupedTickets[key] || []).length > 0);
     %>
 
     <% if (!hasTickets) { %>
@@ -40,7 +45,7 @@
     <% } else { %>
       <div id="ticketsList">
         <% typeEntries.forEach(([typeKey, typeInfo]) => { %>
-          <% const tickets = (ticketsByType?.[typeKey] || []); %>
+          <% const tickets = groupedTickets[typeKey] || []; %>
           <% if (!tickets.length) return; %>
 
           <section class="ticket-category category-section" data-category="<%= typeKey %>">
