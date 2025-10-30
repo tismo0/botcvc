@@ -69,13 +69,94 @@ body {
 }
 
 /* Barre de recherche */
-.search-container {
-  position: relative;
-  max-width: 600px;
-  margin: 0 auto 3rem;
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3rem;
   transform: translateY(20px);
   opacity: 0;
   animation: fadeInUp 0.6s ease-out 0.2s forwards;
+}
+
+.search-container {
+  position: relative;
+  flex: 1 1 320px;
+  max-width: 600px;
+}
+
+.delete-form {
+  flex: 1 1 280px;
+  min-width: 260px;
+  background: rgba(79, 84, 92, 0.35);
+  padding: 1rem;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+}
+
+.delete-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.delete-input-group {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.delete-input-group select {
+  flex: 1;
+  appearance: none;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.delete-input-group select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.3);
+}
+
+.delete-submit {
+  border: none;
+  background: linear-gradient(135deg, rgba(237, 66, 69, 0.9), rgba(237, 66, 69, 0.7));
+  color: #fff;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.delete-submit:hover,
+.delete-submit:focus {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  outline: none;
+}
+
+.delete-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
 }
 
 .search-container i {
@@ -107,6 +188,60 @@ body {
 
 #searchInput:focus + i {
   color: var(--primary);
+}
+
+.search-container:focus-within i {
+  color: var(--primary);
+}
+
+.filter-group {
+  display: inline-flex;
+  gap: 0.5rem;
+  background: rgba(79, 84, 92, 0.3);
+  padding: 0.35rem;
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(6px);
+}
+
+.filter-btn {
+  position: relative;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.filter-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  opacity: 0;
+  transition: var(--transition);
+  z-index: -1;
+}
+
+.filter-btn:hover {
+  color: var(--text);
+}
+
+.filter-btn:hover::after {
+  opacity: 0.35;
+}
+
+.filter-btn.active {
+  color: #fff;
+}
+
+.filter-btn.active::after {
+  opacity: 1;
 }
 
 /* Liste des tickets */
@@ -146,6 +281,7 @@ body {
   );
   opacity: 0;
   transition: var(--transition);
+  pointer-events: none;
 }
 
 .ticket:hover {
@@ -170,6 +306,7 @@ body {
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
 }
 
 .ticket:hover::after {
@@ -268,6 +405,54 @@ body {
   transform: translateX(3px);
 }
 
+.ticket-delete {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 2;
+}
+
+.delete-btn {
+  border: none;
+  background: rgba(237, 66, 69, 0.12);
+  color: var(--danger);
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 3;
+}
+
+.delete-btn:hover,
+.delete-btn:focus {
+  background: rgba(237, 66, 69, 0.2);
+  box-shadow: var(--shadow-md);
+  outline: none;
+}
+
+.delete-btn i {
+  pointer-events: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Message quand aucun ticket */
 .no-tickets {
   text-align: center;
@@ -311,6 +496,7 @@ body {
   transform: skewX(-30deg);
   transition: 0.6s;
   opacity: 0;
+  pointer-events: none;
 }
 
 .ticket:hover .ticket-shine {
@@ -323,6 +509,19 @@ body {
 @media (max-width: 768px) {
   body {
     padding: 1rem;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    justify-content: center;
+  }
+
+  .delete-form {
+    width: 100%;
   }
 
   .header h1 {

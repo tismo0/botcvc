@@ -14,9 +14,38 @@
       <p>Consultez, recherchez et triez les tickets clôturés par catégorie.</p>
     </header>
 
-    <div class="search-container">
-      <i class="fas fa-search"></i>
-      <input type="text" id="searchInput" placeholder="Rechercher un ticket (titre ou catégorie)...">
+    <div class="toolbar">
+      <div class="search-container">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Rechercher un ticket (titre ou catégorie)...">
+      </div>
+
+      <div class="filter-group" role="group" aria-label="Filtres de date">
+        <button class="filter-btn active" data-range="all">Tout</button>
+        <button class="filter-btn" data-range="today">Aujourd'hui</button>
+        <button class="filter-btn" data-range="yesterday">Hier</button>
+        <button class="filter-btn" data-range="week">7 derniers jours</button>
+        <button class="filter-btn" data-range="month">30 derniers jours</button>
+      </div>
+
+      <form class="delete-form" method="POST" action="/delete-ticket-by-date">
+        <label for="deleteDatetime">Supprimer par date/heure</label>
+        <div class="delete-input-group">
+          <select id="deleteDatetime" name="datetimes" multiple size="4">
+            <% if (displayDates && displayDates.length) { %>
+              <% displayDates.forEach((dateTime) => { %>
+                <option value="<%= dateTime %>"><%= dateTime %></option>
+              <% }); %>
+            <% } else { %>
+              <option value="" disabled>Aucune transcription disponible</option>
+            <% } %>
+          </select>
+          <button type="submit" class="delete-submit">
+            <i class="fas fa-trash"></i> Supprimer
+          </button>
+        </div>
+        <p class="delete-hint">Astuce : Ctrl+clic (ou Cmd+clic) pour sélectionner plusieurs dates.</p>
+      </form>
     </div>
 
     <% 
@@ -33,8 +62,13 @@
         return acc;
       }, {});
 
-      const typeEntries = Object.entries(config.tickets.types);
-      const hasTickets = typeEntries.some(([key]) => (groupedTickets[key] || []).length > 0);
+      const displayedCategories = categories && categories.length
+        ? categories
+        : Object.entries(config.tickets.types)
+            .filter(([key]) => (groupedTickets[key] || []).length > 0)
+            .map(([key, info]) => ({ key, info, tickets: groupedTickets[key] || [] }));
+
+      const hasTickets = displayedCategories.some((category) => category.tickets.length > 0);
     %>
 
     <% if (!hasTickets) { %>
@@ -44,9 +78,9 @@
       </div>
     <% } else { %>
       <div id="ticketsList">
-        <% typeEntries.forEach(([typeKey, typeInfo]) => { %>
-          <% const tickets = groupedTickets[typeKey] || []; %>
-          <% if (!tickets.length) return; %>
+        <% displayedCategories.forEach((category) => { %>
+          <% const { key: typeKey, info: typeInfo, tickets } = category; %>
+          <% if (!tickets || !tickets.length) return; %>
 
           <section class="ticket-category category-section" data-category="<%= typeKey %>">
             <h2>
@@ -61,6 +95,8 @@
                   class="ticket ticket-card"
                   data-type="<%= typeKey.toLowerCase() %>"
                   data-title="<%- (ticket.title || 'Sans titre').toLowerCase().replace(/\"/g, '&quot;') %>"
+                  data-date="<%= ticket.timestamp || '' %>"
+                  data-paris-date="<%= ticket.parisDateKey || '' %>"
                 >
                   <div class="ticket-shine" aria-hidden="true"></div>
 
@@ -68,7 +104,7 @@
                     <h3 class="ticket-title"><%= ticket.title || "Sans titre" %></h3>
                     <span class="ticket-date">
                       <i class="far fa-calendar-alt" aria-hidden="true"></i>
-                      <%= parsedDate ? parsedDate.toLocaleString('fr-FR') : (ticket.date || 'Date inconnue') %>
+                      <%= ticket.displayDate || ticket.date || 'Date inconnue' %>
                     </span>
                   </div>
 
@@ -83,6 +119,14 @@
                       Voir la transcription <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                     </a>
                   <% } %>
+
+                  <form class="ticket-delete" method="POST" action="/delete-ticket" onsubmit="return confirm('Supprimer ce transcript ?');">
+                    <input type="hidden" name="filename" value="<%= ticket.filename %>">
+                    <button type="submit" class="delete-btn" aria-label="Supprimer le transcript" title="Supprimer le transcript">
+                      <i class="fas fa-trash" aria-hidden="true"></i>
+                      <span class="sr-only">Supprimer</span>
+                    </button>
+                  </form>
                 </article>
               <% }); %>
             </div>
@@ -99,39 +143,88 @@
 
   <script>
     const searchInput = document.getElementById('searchInput');
+    const filterButtons = Array.from(document.querySelectorAll('.filter-btn'));
     const categorySections = Array.from(document.querySelectorAll('.category-section'));
     const emptyState = document.querySelector('.search-empty');
 
-    if (searchInput) {
-      searchInput.addEventListener('input', (event) => {
-        const term = event.target.value.trim().toLowerCase();
-        let visibleTickets = 0;
+    const now = new Date();
+    const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
-        categorySections.forEach((section) => {
-          const tickets = Array.from(section.querySelectorAll('.ticket-card'));
-          let sectionVisible = false;
+    const ranges = {
+      all: () => true,
+      today: (timestamp) => {
+        if (!timestamp) return false;
+        const diff = now - new Date(Number(timestamp));
+        return diff < MS_IN_DAY && new Date(Number(timestamp)).getDate() === now.getDate();
+      },
+      yesterday: (timestamp) => {
+        if (!timestamp) return false;
+        const date = new Date(Number(timestamp));
+        const diff = now - date;
+        return diff >= MS_IN_DAY && diff < 2 * MS_IN_DAY && date.getDate() === new Date(now - MS_IN_DAY).getDate();
+      },
+      week: (timestamp) => {
+        if (!timestamp) return false;
+        const diff = now - new Date(Number(timestamp));
+        return diff <= 7 * MS_IN_DAY;
+      },
+      month: (timestamp) => {
+        if (!timestamp) return false;
+        const diff = now - new Date(Number(timestamp));
+        return diff <= 30 * MS_IN_DAY;
+      },
+    };
 
-          tickets.forEach((ticket) => {
-            const title = ticket.dataset.title || '';
-            const type = ticket.dataset.type || '';
+    let activeRange = 'all';
+    let activeTerm = '';
 
-            if (!term || title.includes(term) || type.includes(term)) {
-              ticket.style.display = '';
-              sectionVisible = true;
-              visibleTickets++;
-            } else {
-              ticket.style.display = 'none';
-            }
-          });
+    function applyFilters() {
+      let visibleTickets = 0;
 
-          section.style.display = sectionVisible ? '' : 'none';
+      categorySections.forEach((section) => {
+        const tickets = Array.from(section.querySelectorAll('.ticket-card'));
+        let sectionVisible = false;
+
+        tickets.forEach((ticket) => {
+          const title = ticket.dataset.title || '';
+          const type = ticket.dataset.type || '';
+          const timestamp = ticket.dataset.date;
+
+          const matchesTerm = !activeTerm || title.includes(activeTerm) || type.includes(activeTerm);
+          const matchesRange = ranges[activeRange](timestamp);
+
+          if (matchesTerm && matchesRange) {
+            ticket.style.display = '';
+            sectionVisible = true;
+            visibleTickets++;
+          } else {
+            ticket.style.display = 'none';
+          }
         });
 
-        if (emptyState) {
-          emptyState.style.display = visibleTickets === 0 ? 'block' : 'none';
-        }
+        section.style.display = sectionVisible ? '' : 'none';
+      });
+
+      if (emptyState) {
+        emptyState.style.display = visibleTickets === 0 ? 'block' : 'none';
+      }
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (event) => {
+        activeTerm = event.target.value.trim().toLowerCase();
+        applyFilters();
       });
     }
+
+    filterButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        filterButtons.forEach((btn) => btn.classList.remove('active'));
+        button.classList.add('active');
+        activeRange = button.dataset.range;
+        applyFilters();
+      });
+    });
   </script>
 </body>
 </html>
