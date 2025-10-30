@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== "undefined" ? title : "Gestion des Tickets" %></title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Zeta CVC - Gestion des Tickets</h1>
+      <p>Consultez, recherchez et triez les tickets clôturés par catégorie.</p>
+    </header>
+
+    <div class="search-container">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Rechercher un ticket (titre ou catégorie)...">
+    </div>
+
+    <% 
+      function parseFrenchDate(str) {
+        if (!str) return null;
+        const parts = str.split(/[\/ :]/).map(Number);
+        if (parts.length < 3) return null;
+        const [day, month, year, hour = 0, minute = 0, second = 0] = parts;
+        return new Date(year, month - 1, day, hour, minute, second);
+      }
+
+      const typeEntries = Object.entries(config.tickets.types);
+      const hasTickets = typeEntries.some(([key]) => (ticketsByType?.[key] || []).length > 0);
+    %>
+
+    <% if (!hasTickets) { %>
+      <div class="no-tickets">
+        <i class="fas fa-ticket-alt"></i>
+        <p>Aucun ticket trouvé.</p>
+      </div>
+    <% } else { %>
+      <div id="ticketsList">
+        <% typeEntries.forEach(([typeKey, typeInfo]) => { %>
+          <% const tickets = (ticketsByType?.[typeKey] || []); %>
+          <% if (!tickets.length) return; %>
+
+          <section class="ticket-category category-section" data-category="<%= typeKey %>">
+            <h2>
+              <span class="emoji"><%= typeInfo.emoji || "📄" %></span>
+              <span class="label"><%= typeInfo.label || typeKey %></span>
+            </h2>
+
+            <div class="category-grid">
+              <% tickets.forEach((ticket) => { %>
+                <% const parsedDate = parseFrenchDate(ticket.date); %>
+                <article
+                  class="ticket ticket-card"
+                  data-type="<%= typeKey.toLowerCase() %>"
+                  data-title="<%- (ticket.title || 'Sans titre').toLowerCase().replace(/\"/g, '&quot;') %>"
+                >
+                  <div class="ticket-shine" aria-hidden="true"></div>
+
+                  <div class="ticket-header">
+                    <h3 class="ticket-title"><%= ticket.title || "Sans titre" %></h3>
+                    <span class="ticket-date">
+                      <i class="far fa-calendar-alt" aria-hidden="true"></i>
+                      <%= parsedDate ? parsedDate.toLocaleString('fr-FR') : (ticket.date || 'Date inconnue') %>
+                    </span>
+                  </div>
+
+                  <div class="ticket-meta">
+                    <span class="ticket-type" data-type="<%= typeKey.toLowerCase() %>">
+                      <%= typeInfo.emoji || "📄" %> <%= typeInfo.label || typeKey %>
+                    </span>
+                  </div>
+
+                  <% if (ticket.url) { %>
+                    <a href="<%= ticket.url %>" class="ticket-link" target="_blank" rel="noopener noreferrer">
+                      Voir la transcription <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                    </a>
+                  <% } %>
+                </article>
+              <% }); %>
+            </div>
+          </section>
+        <% }); %>
+      </div>
+
+      <div class="no-tickets search-empty" style="display: none;">
+        <i class="fas fa-search"></i>
+        <p>Aucun ticket ne correspond à votre recherche.</p>
+      </div>
+    <% } %>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const categorySections = Array.from(document.querySelectorAll('.category-section'));
+    const emptyState = document.querySelector('.search-empty');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (event) => {
+        const term = event.target.value.trim().toLowerCase();
+        let visibleTickets = 0;
+
+        categorySections.forEach((section) => {
+          const tickets = Array.from(section.querySelectorAll('.ticket-card'));
+          let sectionVisible = false;
+
+          tickets.forEach((ticket) => {
+            const title = ticket.dataset.title || '';
+            const type = ticket.dataset.type || '';
+
+            if (!term || title.includes(term) || type.includes(term)) {
+              ticket.style.display = '';
+              sectionVisible = true;
+              visibleTickets++;
+            } else {
+              ticket.style.display = 'none';
+            }
+          });
+
+          section.style.display = sectionVisible ? '' : 'none';
+        });
+
+        if (emptyState) {
+          emptyState.style.display = visibleTickets === 0 ? 'block' : 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

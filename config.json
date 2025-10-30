@@ -1,0 +1,87 @@
+{
+  "token": "MTQyMTU5MjcxMTY0Njk0MTE5NA.G5wyN8.AwM7yJyogfmiFSnimQOpGXUmDHmfPgU8oGLuQo",
+  "guildId": "873262639223025705",
+  "clientId": "1421592711646941194",
+  "roles": {
+    "vocal1": "1421593796013064282",
+    "vocal2": "1421593796013064282",
+    "vocal3": "1421593796013064282",
+    "contrib": "1337894402563113142",
+    "booster": "1173337231088427029",
+    "soutien": "1339320582868828241",
+    "joueur": "1033698867109167157",
+    "staff": "1337891631348842688",
+
+    "annonceRoles": [
+      "873476507304091668",
+      "1337885755598442618",
+      "1337898160735125534"
+    ],
+    "cvcRoles": [
+      "1337891631348842688",
+      "1337892271705821204",
+      "1337891765960573078",
+      "1337890408168165388",
+      "1337898160735125534",
+      "1337885755598442618",
+      "873476507304091668"
+    ]
+  },
+  "channels": {
+    "vocal1": "1421257579199201402",
+    "vocal2": "1421257921668583436",
+    "vocal3": "1421257944791646330",
+    "annonceCommand": "1427659127412228166",
+    "annonceTarget": "1421251352155394159",
+    "cvcTarget": "1421259436714098758"
+  },
+  "annonceGif": "https://cdn.discordapp.com/attachments/1251611248450343075/1430630057822519397/Copie_de_Convoi_4.png?ex=6901b9d1&is=69006851&hm=0216fb6d78912edbbee0c81b8bf3118601be9eb08cac46be016287c3b63fa08e&",
+  "tickets": {
+    "panel": {
+      "channel": "1337896177806610433",
+      "messageId": "1432917964713103400",
+      "embedTitle": "🎫 Système de Tickets",
+      "embedDescription": "Clique sur un bouton ci-dessous pour créer un ticket selon ton besoin.",
+      "embedColor": "#6c0277",
+      "embedThumbnail": "https://cdn.discordapp.com/attachments/1251611248450343075/1427724240404349020/Projet_Redimensionner_une_image.png?ex=69025c50&is=69010ad0&hm=ee969be71fa9b9e19fd99159ab42c9a8a12c9617ffbb0094701fb078c5dcadee&",
+      "embedImage": "https://cdn.discordapp.com/attachments/1251611248450343075/1432144680405176411/Copie_de_Copie_de_Convoi_2_1.png?ex=6901f66b&is=6900a4eb&hm=e4b0bdd7225e0883be9654f20941c87954ab6935cb561e2380741beda0a3af4a&"
+    },
+    "types": {
+      "contrib": {
+        "label": "Contrib",
+        "emoji": "💰",
+        "categoryId": "1338118937719738419",
+        "logChannel": "1432135747909193820",
+        "mentionRoles": ["1337891631348842688"]
+      },
+      "déban": {
+        "label": "Débanissement",
+        "emoji": "🚫",
+        "categoryId": "1338118837886783519",
+        "logChannel": "1338119940682809445",
+        "mentionRoles": ["1337891631348842688"]
+      },
+      "aide": {
+        "label": "Aide",
+        "emoji": "🆘",
+        "categoryId": "1338119053323145288",
+        "logChannel": "1432135211788927119",
+        "mentionRoles": ["1337891631348842688"]
+      },
+      "recru": {
+        "label": "Recrutement",
+        "emoji": "📝",
+        "categoryId": "1338118896405970988",
+        "logChannel": "1432135844831039629",
+        "mentionRoles": ["1337891631348842688"]
+      },
+      "staff": {
+        "label": "Staff",
+        "emoji": "🔰",
+        "categoryId": "1338118798389022741",
+        "logChannel": "1338119882344108132",
+        "mentionRoles": ["1337891631348842688"]
+      }
+    }
+  }
+}
