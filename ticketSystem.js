@@ -16,6 +16,60 @@ import { promises as fs } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+function sanitizeFilename(value) {
+  return value
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9-_]+/gi, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase() || "ticket";
+}
+
+function extractTicketOwnerId(channel) {
+  const topic = channel.topic || "";
+  const match = topic.match(/UserID:(\d{5,})/);
+  return match ? match[1] : null;
+}
+
+async function getTranscriptPayload(channel, guild) {
+  const transcriptHtml = await generateTranscript(channel, guild);
+  const safeChannelName = sanitizeFilename(channel.name);
+  const filename = `transcript-${safeChannelName}-${Date.now()}.html`;
+
+  return { transcriptHtml, filename };
+}
+
+export async function sendTranscriptToOwner(channel, payload) {
+  const ownerId = extractTicketOwnerId(channel);
+
+  if (!ownerId) {
+    return { success: false, reason: "Propriétaire du ticket introuvable." };
+  }
+
+  try {
+    const user = await channel.client.users.fetch(ownerId);
+
+    const ensurePayload = async () => {
+      if (payload) return payload;
+      return await getTranscriptPayload(channel, channel.guild);
+    };
+
+    const { transcriptHtml, filename } = await ensurePayload();
+
+    await user.send({
+      content: `📋 Voici la transcription de ton ticket **${channel.name}**`,
+      files: [{ attachment: Buffer.from(transcriptHtml, "utf-8"), name: filename }]
+    });
+
+    return { success: true, ownerId };
+  } catch (error) {
+    console.warn("Impossible d'envoyer le transcript en DM:", error);
+    return { success: false, reason: "Impossible d'envoyer un message privé à l'utilisateur." };
+  }
+}
+
 /**
  * Crée un nouveau ticket pour un utilisateur
  */
@@ -77,6 +131,12 @@ export async function createTicket(interaction, config, typeKey) {
         }))
       ]
     });
+
+    try {
+      await ticketChannel.setTopic(`Ticket de ${member.user.tag} | UserID:${member.id}`);
+    } catch (error) {
+      console.warn("Impossible de définir le topic du ticket:", error);
+    }
 
     // Mentions des rôles staff
     const roleMentions = ticketType.mentionRoles.map(roleId => `<@&${roleId}>`).join(" ");
@@ -200,18 +260,17 @@ export async function closeTicket(interaction, config, isRequest = false) {
   });
 
   try {
-    const transcript = await generateTranscript(channel, guild);
+    const { transcriptHtml, filename } = await getTranscriptPayload(channel, guild);
 
     const transcriptsDir = join(__dirname, 'transcripts');
     await fs.mkdir(transcriptsDir, { recursive: true });
 
-    const transcriptFilename = `transcript-${channel.name}-${Date.now()}.html`;
-    const transcriptPath = join(transcriptsDir, transcriptFilename);
+    const transcriptPath = join(transcriptsDir, filename);
 
-    await fs.writeFile(transcriptPath, transcript, 'utf-8');
+    await fs.writeFile(transcriptPath, transcriptHtml, 'utf-8');
 
     const webUrl = process.env.WEB_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const transcriptUrl = `${webUrl}/transcript/${transcriptFilename}`;
+    const transcriptUrl = `${webUrl}/transcript/${filename}`;
 
     // Trouver le type de ticket selon la catégorie Discord
     let ticketType = Object.values(config.tickets.types).find(
@@ -231,7 +290,7 @@ export async function closeTicket(interaction, config, isRequest = false) {
               { name: "Salon", value: channel.name, inline: true },
               { name: "Fermé par", value: `${interaction.user}`, inline: true },
               { name: "Type", value: ticketType.label, inline: true },
-              { name: "Lien de la transcription", value: `[Voir la transcription](http://51.83.6.5:20248/)` }
+              { name: "Lien de la transcription", value: `[Voir la transcription](${transcriptUrl})` }
             )
             .setTimestamp();
 
@@ -245,6 +304,8 @@ export async function closeTicket(interaction, config, isRequest = false) {
     } else {
       console.warn("Aucun type de ticket correspondant à la catégorie :", channel.parentId);
     }
+
+    await sendTranscriptToOwner(channel, { transcriptHtml, filename });
 
     // Supprimer le salon après 5 secondes
     setTimeout(async () => {
@@ -260,10 +321,6 @@ export async function closeTicket(interaction, config, isRequest = false) {
   }
 }
 
-
-/**
- * Génère une transcription HTML du ticket
- */
 async function generateTranscript(channel, guild) {
   const messages = await channel.messages.fetch({ limit: 100 });
   const sortedMessages = [...messages.values()].reverse();
@@ -395,7 +452,6 @@ async function generateTranscript(channel, guild) {
           <div class="message-text">${escapeHtml(msg.content)}</div>
     `;
 
-    // Embeds
     if (msg.embeds.length > 0) {
       for (const embed of msg.embeds) {
         html += `
@@ -407,7 +463,6 @@ async function generateTranscript(channel, guild) {
       }
     }
 
-    // Attachments
     if (msg.attachments.size > 0) {
       for (const attachment of msg.attachments.values()) {
         if (attachment.contentType?.startsWith("image/")) {
